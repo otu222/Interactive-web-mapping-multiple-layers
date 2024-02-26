@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8 />
+  <title>Finding a suitable home in Denver, Colorado</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+  <!-- Is the is the latest version of Leaflet? -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700" rel="stylesheet">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: rgb(43, 43, 43);
+      font-family: "Lato", sans-serif;
+      font-size: 100%;
+      font-weight: 300;
+      color: rgb(172, 172, 172);
+    }
+
+    header,
+    footer,
+    section {
+      padding: 6px 10%;
+      margin: 0 auto;
+      width: 80%
+    }
+
+    h1 {
+      display: inline-block;
+      margin-right: 20px;
+      color: rgb(190, 190, 190);
+      font-size: 3.5em;
+      font-weight: 700;
+    }
+
+    h2 {
+      display: inline-block;
+      color: rgba(255, 200, 0, 0.8);
+      letter-spacing: 0.05em;
+      margin-top: 0px;
+      font-weight: 300;
+      text-transform: uppercase;
+      border-bottom: 1px dotted rgba(255, 200, 0, 0.5);
+      ;
+    }
+
+    #map {
+      width: 80%;
+      height: 540px;
+      margin: 10px auto;
+    }
+
+    p {
+      font-size: 1em;
+      color: rgba(170, 170, 170);
+      ;
+      font-weight: 300;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Finding a suitable home in Denver, Colorado</h1>
+    <h2>Where to live, laugh, love?</h2>
+  </header>
+
+  <div id='map'></div>
+
+  <footer>
+    <p>Map authored by Orest Tuz</p>
+    <p>This map was created for MAP 672 : Lab 8 for the NewMapsPlus Course using <a href="https://leafletjs.com/index.html">Leaflet v1.9.4</a></p>
+    <h2><strong>About The Author</strong></h2>
+    <ul>
+      <li>See my projects on GitHub: <a href="https://github.com/otu222">github.com/otu222</a></li>
+      <li>Visit my <a href='https://github.com/otu222?tab=repositories'>mapping portfolio</a>.</li>
+    </ul>
+  </footer>
+  <!-- Is the is the latest version of Leaflet? -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="data/after-school-programs.js"></script>
+  <script src="data/denver-fire-stations.js"></script>
+  <script src="data/denver-food-stores.js"></script>
+  <script>
+    var map = L.map('map', {
+      center: [39.7256, -104.9252],
+      zoom: 11,
+    });
+
+    var tiles = L.tileLayer('https://cartodb-basemaps-{s}.global.ssl.fastly.net/rastertiles/dark_all/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // BEGIN WRITING YOUR SOLUTION CODE HERE
+
+    // Store layers
+    var layerInfo = {
+        afterSchoolProgramsLayer : {
+            source : programs,
+            color : '#5ba300',
+            nameField : 'ORGANIZATI'
+        },
+        denverFireStationsLayer : {
+            source : stations,
+            color : '#0073e6',
+            nameField : 'STATION_NU'
+        },
+        denverFoodStoresLayer : {
+            source : stores,
+            color : '#b51963',
+            nameField : 'STORE_NAME'
+        }
+    };
+
+    // Build empty JS object
+    var geoJsonLayers = {};
+
+    // Loop through layers
+    for (var layer in layerInfo) {
+        // Populate the second object with all features that
+        geoJsonLayers[layer] = L.geoJson(layerInfo[layer].source, {
+            // we convert to a layer
+            pointToLayer: function (feature, latlng) {
+                return L.circleMarker(latlng);
+            },
+            style: function (feature) {
+              return {
+                  color: layerInfo[layer].color,
+                  fillColor: layerInfo[layer].color,
+                  weight: 1,
+                  stroke: 0,
+                  fillOpacity: 1,
+                  radius: 5
+              }
+            }
+        }).addTo(map);
+    }
+
+    var sourcesLabels = {
+        "<b style='color:#5ba300;'>After School Programs</b>": geoJsonLayers.afterSchoolProgramsLayer,
+        "<b style='color:#0073e6;'>Fire Stations</b>": geoJsonLayers.denverFireStationsLayer,
+        "<b style='color:#b51963;'>Food Stores</b>": geoJsonLayers.denverFoodStoresLayer
+    }
+
+    L.control.layers(null, sourcesLabels, {
+        collapsed: false
+    }).addTo(map);
+
+    // ########## map click section ##########
+
+    map.on('click', function (e) {
+        // Loop through object containing geojson layers
+        for (var gsLayer in layerInfo) {
+
+            // Add a function to each layer geoJsonLayers object
+            // Important! We need to make a distinction between
+            // gsLayer (a key in layerInfo that matches a key in geoJsonLayers) 
+            // and layer (a function parameter)
+
+            geoJsonLayers[gsLayer].eachLayer(function (layer) {
+
+                var distance = e.latlng.distanceTo(layer.getLatLng()) / 1000;
+
+                if (distance > 1) {
+                    layer.setStyle({
+                        fillOpacity: 0.1
+                    });
+                } else {
+                    layer.setStyle({
+                        fillOpacity: 1
+                    });
+
+                    // Create tooltip!
+                    // First get the properties of the for each geojson feature
+                    var props = layer.feature.properties;
+                  
+                    var content = `<h3><span style='color:${layerInfo[gsLayer].color}'>
+                              ${props[layerInfo[gsLayer].nameField]}</span><b></h3>`;
+              
+                    layer.bindTooltip(content);
+                }
+            });
+        }
+    });
+  </script>
+
+</body>
+</html>
